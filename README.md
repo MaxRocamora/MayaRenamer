@@ -7,7 +7,7 @@ There are some limitations from the maya naming system, you cannot have a number
 You can rename maya non-DAG Objects, like shading nodes, etc, from the outliner.  
 The auto-padding feature works reading the selection order, if you want the same results on padding, just select items in the same order. (Select Top item, shift-click and select bottom item)
 
-![renamer screenshot](https://github.com/MaxRocamora/MayaRenamer/blob/master/renamer/img/renamer.png?raw=true>)
+![renamer screenshot](https://github.com/MaxRocamora/MayaRenamer/blob/main/renamer/img/renamer.png?raw=true>)
 
 ### Install
 
