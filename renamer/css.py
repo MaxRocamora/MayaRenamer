@@ -1,9 +1,13 @@
-from PySide2.QtGui import QColor
-from PySide2.QtWidgets import QGraphicsDropShadowEffect
+try:
+    from PySide2.QtGui import QColor
+    from PySide2.QtWidgets import QGraphicsDropShadowEffect
+except ImportError:
+    from PySide6.QtGui import QColor
+    from PySide6.QtWidgets import QGraphicsDropShadowEffect
 
 
 def css_button(qt_window, button, color=None, shadow=True):
-    ''' apply style to a button widget '''
+    """Apply style to a button widget."""
 
     # default bg color is gray 80
     if color == 'red':
@@ -19,8 +23,9 @@ def css_button(qt_window, button, color=None, shadow=True):
         bg_color = 'rgb(80, 80, 80)'  # gray
         tx_color = 'rgb(230, 230, 230)'
 
-    css = "border-radius:3px;color:{};background:{};font-size:12px;font-family:Segoe UI;".format(
-        tx_color, bg_color)
+    css = 'border-radius:3px;color:{};background:{};font-size:12px;font-family:Segoe UI;'.format(
+        tx_color, bg_color
+    )
     button.setStyleSheet(css)
 
     if shadow:
@@ -31,7 +36,7 @@ def css_button(qt_window, button, color=None, shadow=True):
         button.setGraphicsEffect(shadow)
 
 
-groupbox_css = ("""
+groupbox_css = """
     QGroupBox {
         font: bold;
         border: 1px solid silver;
@@ -44,9 +49,9 @@ groupbox_css = ("""
         left: 10px;
         padding: -5px 5px 0px 5px;
     }
-        """)
+        """
 
-checkbox_css = ("""
+checkbox_css = """
     QCheckBox {
         color: rgb(230, 230, 230);
     }
@@ -74,10 +79,10 @@ checkbox_css = ("""
     QCheckBox:indicator:hover {
         border: 1px solid rgb(200, 200, 200);
     }
-    """)
+    """
 
-label_css = ("""
+label_css = """
     QLabel {
         color: rgb(230, 230, 230);
     }
-    """)
+    """
