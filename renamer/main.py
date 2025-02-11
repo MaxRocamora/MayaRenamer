@@ -5,9 +5,18 @@
 # ----------------------------------------------------------------------------------------
 import os
 import maya.cmds as cmds
-from PySide2 import QtWidgets
-from PySide2.QtCore import Qt
-from PySide2 import QtUiTools
+
+PYSIDE_VERSION = 2
+
+try:
+    from PySide2 import QtWidgets
+    from PySide2.QtCore import Qt
+    from PySide2 import QtUiTools
+except ImportError:
+    PYSIDE_VERSION = 6
+    from PySide6 import QtWidgets
+    from PySide6.QtCore import Qt
+    from PySide6 import QtUiTools
 
 from renamer.css import css_button, groupbox_css, checkbox_css, label_css
 from renamer.utils import undo_decorator, get_maya_main_window
@@ -24,6 +33,7 @@ UNDERSCORE = '_'
 
 class Renamer(QtWidgets.QMainWindow):
     def __init__(self, parent=get_maya_main_window()):
+        """Main Renamer Class."""
         super().__init__(parent)
         self.setAttribute(Qt.WA_DeleteOnClose, True)
         self.setObjectName(__qt__)
@@ -37,7 +47,7 @@ class Renamer(QtWidgets.QMainWindow):
         self.reset_ui()
 
     def set_connections(self):
-        ''' Connections & css '''
+        """Connections & css."""
         for widget in self.ui.findChildren(QtWidgets.QCheckBox):
             widget.setStyleSheet(checkbox_css)
         for widget in self.ui.findChildren(QtWidgets.QGroupBox):
@@ -50,9 +60,9 @@ class Renamer(QtWidgets.QMainWindow):
         self.ui.btn_replace.clicked.connect(self.replace)
 
     def reset_ui(self):
-        ''' Reset Variables and UI widgets '''
+        """Reset Variables and UI widgets."""
         self.ui.rad_selection.setChecked(True)
-        self.input_basename = ""
+        self.input_basename = ''
         self.padding__basenumber = 1
         self.ui.line_basenumber.setText(str(DEFAULT_BASENUMBER))
         self.padding_step = 1
@@ -66,7 +76,7 @@ class Renamer(QtWidgets.QMainWindow):
 
     @undo_decorator
     def rename_pressed(self):
-        ''' rename button callback '''
+        """Rename button callback."""
         # Padding UI
         if not self.is_number(self.ui.line_basenumber.text()):
             self.ui.line_basenumber.setText(str(DEFAULT_BASENUMBER))
@@ -98,15 +108,11 @@ class Renamer(QtWidgets.QMainWindow):
             input_basename = self.ui.line_name.text()
             if self.ui.chk_name.isChecked():
                 if not input_basename:
-                    self.alert(
-                        "Enter a basename or disable checkbox!", "Ops!")
+                    self.alert('Enter a basename or disable checkbox!', 'Ops!')
                     return
 
                 if self.is_number(input_basename):
-                    self.alert(
-                        "Your basename must not contain numbers",
-                        "Ops!"
-                    )
+                    self.alert('Your basename must not contain numbers', 'Ops!')
                     return
                 __name = input_basename
 
@@ -122,7 +128,7 @@ class Renamer(QtWidgets.QMainWindow):
 
             # rename it!
             if self.is_number(__name):
-                print("skipping this item, the result is a number: ", obj)
+                print('skipping this item, the result is a number: ', obj)
                 continue
 
             cmds.rename(obj, __name)
@@ -134,7 +140,7 @@ class Renamer(QtWidgets.QMainWindow):
     # ------------------------------------------------------------------------------------
 
     def remove_first_digits(self, name):
-        ''' remove first digits if you are not setting a base name '''
+        """Remove first digits if you are not setting a base name."""
         if not self.ui.chk_removefirst.isChecked():
             return name
 
@@ -149,8 +155,8 @@ class Renamer(QtWidgets.QMainWindow):
             name = name[remove_amount:]
         return name
 
-    def remove_last_digits(self, name):
-        ''' remove last digits if you are not setting a base name '''
+    def remove_last_digits(self, name: str) -> str:
+        """Remove last digits if you are not setting a base name."""
         if not self.ui.chk_removelast.isChecked():
             return name
 
@@ -165,7 +171,8 @@ class Renamer(QtWidgets.QMainWindow):
             name = name[:-remove_amount]
         return name
 
-    def add_prefix(self, name):
+    def add_prefix(self, name: str) -> str:
+        """Add prefix to the name."""
         if not self.ui.chk_prefix.isChecked():
             return name
 
@@ -178,8 +185,9 @@ class Renamer(QtWidgets.QMainWindow):
 
         return input_prefix + UNDERSCORE + name
 
-    def add_suffix(self, name):
-        # sourcery skip: assign-if-exp, reintroduce-else, swap-if-expression
+    def add_suffix(self, name: str) -> str:
+        """Add suffix to the name."""
+
         if not self.ui.chk_suffix.isChecked():
             return name
 
@@ -195,6 +203,7 @@ class Renamer(QtWidgets.QMainWindow):
 
     @undo_decorator
     def replace(self):
+        """Replace button callback."""
         replace_text = str(self.ui.line_find.text())
         with_text = str(self.ui.line_replace.text())
 
@@ -202,9 +211,8 @@ class Renamer(QtWidgets.QMainWindow):
         self._find_replace(nodes, replace_text, with_text)
 
     @undo_decorator
-    def _find_replace(self, nodes, find_text, replace_text):
-        ''' Find and replaces text, get nodes are based
-        on scene or maya selection '''
+    def _find_replace(self, nodes: list, find_text: str, replace_text: str) -> list:
+        """Find and replaces text, get nodes are based on scene or maya selection."""
         shapes = cmds.ls(nodes, s=True)
         shape_set = set(shapes)
 
@@ -226,8 +234,7 @@ class Renamer(QtWidgets.QMainWindow):
                 continue
             if not cmds.objExists(shape):
                 try:
-                    new_name = cmds.rename(
-                        shape, shape.replace(find_text, '__tmp__'))
+                    new_name = cmds.rename(shape, shape.replace(find_text, '__tmp__'))
                     new_nodes_names.append((shape, new_name))
                 except RuntimeError:
                     failed_nodes.append(node)
@@ -243,23 +250,25 @@ class Renamer(QtWidgets.QMainWindow):
     # UTILITY METHODS
     # ------------------------------------------------------------------------------------
 
-    def is_number(self, s):
-        """ check if a string is a number """
+    def is_number(self, string_to_check: str) -> bool:
+        """Check if a string is a number."""
         try:
-            int(s)
+            int(string_to_check)
             return True
         except ValueError:
             return False
 
-    def alert(self, msg, title):
-        """ Opens a messagebox UI
-            msg: string.
-            title: string.
+    def alert(self, message: str, title: str):
+        """Opens a messagebox UI.
+
+        message: string - message to display.
+        title: string - title of the message box.
         """
         msgBox = QtWidgets.QMessageBox(self)
         msgBox.setWindowTitle(title)
-        msgBox.setText(msg)
-        msgBox.exec_()
+        msgBox.setText(message)
+        msgBox.exec_() if PYSIDE_VERSION == 2 else msgBox.exec()
+
 
 # ----------------------------------------------------------------------------------------
 # MAIN
@@ -267,6 +276,7 @@ class Renamer(QtWidgets.QMainWindow):
 
 
 def load():
+    """Load Renamer UI."""
     if cmds.window(__qt__, q=1, ex=1):
         cmds.deleteUI(__qt__)
     Renamer()
