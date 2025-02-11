@@ -1,6 +1,6 @@
 # ----------------------------------------------------------------------------------------
-'''
-3dsmax style renamer
+"""3dsmax style renamer.
+
 Max Rocamora / maxirocamora@gmail.com
 1.0.0 Release 12/09/2015
 1.1 - bug fix on groups names and clashing - 18/05/16
@@ -15,11 +15,12 @@ Max Rocamora / maxirocamora@gmail.com
 3.6.0 - stand alone tool, moved to workflow repository
 4.0.0 - 09/2021 - updated for maya 2022 and python 3, general refactor
 4.1.0 - 08/2022 - moved to a single github repository
-'''
+4.2.0 - 02/2025 - PySide6
+"""
 # ----------------------------------------------------------------------------------------
 
 VERSION_MAJOR = 4
-VERSION_MINOR = 1
+VERSION_MINOR = 2
 VERSION_PATCH = 0
 
 version = f'{VERSION_MAJOR}.{VERSION_MINOR}.{VERSION_PATCH}'
