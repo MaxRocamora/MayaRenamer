@@ -1,12 +1,11 @@
 # ----------------------------------------------------------------------------------------
-# 3dsmax style renamer (2015-2022)
+# 3dsmax style renamer
 # Author: Maximiliano Rocamora / maxirocamora@gmail.com
 # https://github.com/MaxRocamora/MayaRenamer
 # ----------------------------------------------------------------------------------------
 import os
 
 import maya.cmds as cmds
-
 from PySide6 import QtUiTools, QtWidgets
 from PySide6.QtCore import Qt
 
