@@ -22,7 +22,7 @@ DEFAULT_BASENUMBER = 1
 
 
 class Renamer(QtWidgets.QMainWindow):
-    def __init__(self, parent=None):
+    def __init__(self, parent: QtWidgets.QWidget = None) -> None:
         """Main Renamer Class."""
         parent = parent or get_maya_main_window()
         super().__init__(parent)
@@ -40,7 +40,7 @@ class Renamer(QtWidgets.QMainWindow):
         self.show()
         self.reset_ui()
 
-    def set_connections(self):
+    def set_connections(self) -> None:
         """Connections & css."""
         for widget in self.ui.findChildren(QtWidgets.QCheckBox):
             widget.setStyleSheet(checkbox_css)
@@ -53,7 +53,7 @@ class Renamer(QtWidgets.QMainWindow):
         css_button(self.ui, self.ui.btn_replace, 'blue')
         self.ui.btn_replace.clicked.connect(self.replace)
 
-    def reset_ui(self):
+    def reset_ui(self) -> None:
         """Reset Variables and UI widgets."""
         self.ui.rad_selection.setChecked(True)
         self.ui.line_basenumber.setText(str(DEFAULT_BASENUMBER))
@@ -72,7 +72,7 @@ class Renamer(QtWidgets.QMainWindow):
         return value
 
     @undo_decorator
-    def rename_pressed(self):
+    def rename_pressed(self) -> None:
         """Rename button callback."""
         self.base_number = self._read_int(self.ui.line_basenumber, DEFAULT_BASENUMBER)
         self.padding_step = self._read_int(self.ui.line_padding_step, DEFAULT_PADDING)
@@ -164,7 +164,7 @@ class Renamer(QtWidgets.QMainWindow):
     # ------------------------------------------------------------------------------------
 
     @undo_decorator
-    def replace(self):
+    def replace(self) -> None:
         """Replace button callback."""
         find_text = self.ui.line_find.text()
         replace_text = self.ui.line_replace.text()
@@ -209,7 +209,7 @@ class Renamer(QtWidgets.QMainWindow):
     # UTILITY METHODS
     # ------------------------------------------------------------------------------------
 
-    def alert(self, message: str, title: str):
+    def alert(self, message: str, title: str) -> None:
         """Opens a messagebox UI."""
         msg_box = QtWidgets.QMessageBox(self)
         msg_box.setWindowTitle(title)
@@ -222,7 +222,7 @@ class Renamer(QtWidgets.QMainWindow):
 # ----------------------------------------------------------------------------------------
 
 
-def load():
+def load() -> Renamer:
     """Load Renamer UI, closing any previous instance."""
     for widget in QtWidgets.QApplication.allWidgets():
         if widget.objectName() == __qt__ and isinstance(widget, QtWidgets.QMainWindow):

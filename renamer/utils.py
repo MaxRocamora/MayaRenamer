@@ -1,4 +1,5 @@
 import functools
+from typing import Callable
 
 import maya.cmds as cmds
 from maya import OpenMayaUI as omui
@@ -7,7 +8,7 @@ from PySide6 import QtWidgets
 from shiboken6 import wrapInstance
 
 
-def undo_decorator(func):
+def undo_decorator(func: Callable) -> Callable:
     """Maya undo decorator."""
 
     @functools.wraps(func)
@@ -22,6 +23,6 @@ def undo_decorator(func):
     return wrapper
 
 
-def get_maya_main_window():
+def get_maya_main_window() -> QtWidgets.QWidget:
     """Returns maya main window."""
     return wrapInstance(int(omui.MQtUtil.mainWindow()), QtWidgets.QWidget)
