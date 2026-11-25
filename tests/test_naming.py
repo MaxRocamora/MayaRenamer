@@ -35,3 +35,10 @@ def test_affixes():
 
 def test_padding():
     assert naming.add_padding('a', 3, 4) == 'a_0003'
+    assert naming.add_padding('a', 12345, 4) == 'a_12345'
+    assert naming.add_padding('a', 3, 0) == 'a_3'
+
+
+def test_parse_int_whitespace_and_empty():
+    assert naming.parse_int(' 7 ', 1) == 7
+    assert naming.parse_int('', 9) == 9

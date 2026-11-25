@@ -11,11 +11,11 @@ The auto-padding feature works reading the selection order, if you want the same
 
 ### Install
 
-Maya 2025+ *Python3 PySide6*  
+Maya 2025+ *Python3 PySide6* (PySide2 / older Maya versions are no longer supported)
 
 Download and add the folder to your PYTHONPATH environment variable or copy into your maya/scripts folder.
 
-PYTHONPATH += *'D:\directory\renamer'*
+PYTHONPATH += *'D:\directory'* (the folder that contains the `renamer` package)
 
 ### Run
 
@@ -23,4 +23,12 @@ Create a shelf button with this python command:
 ```python
 import renamer.main as renamer
 renamer.load()
+```
+
+### Tests
+
+The pure naming logic (`renamer/naming.py`) has no Maya dependency:
+```
+python -m pip install pytest
+python -m pytest tests
 ```
