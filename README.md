@@ -11,7 +11,6 @@ The auto-padding feature works reading the selection order, if you want the same
 
 ### Install
 
-Maya 2022+ *Python3 PySide2*  
 Maya 2025+ *Python3 PySide6*  
 
 Download and add the folder to your PYTHONPATH environment variable or copy into your maya/scripts folder.

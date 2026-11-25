@@ -16,11 +16,12 @@ Max Rocamora / maxirocamora@gmail.com
 4.0.0 - 09/2021 - updated for maya 2022 and python 3, general refactor
 4.1.0 - 08/2022 - moved to a single github repository
 4.2.0 - 02/2025 - PySide6
+4.3.0 - refactor, bug fixes, dropped PySide2 support
 """
 # ----------------------------------------------------------------------------------------
 
 VERSION_MAJOR = 4
-VERSION_MINOR = 2
+VERSION_MINOR = 3
 VERSION_PATCH = 0
 
 version = f'{VERSION_MAJOR}.{VERSION_MINOR}.{VERSION_PATCH}'
