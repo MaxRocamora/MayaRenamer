@@ -1,17 +1,16 @@
+import functools
+
 import maya.cmds as cmds
 from maya import OpenMayaUI as omui
 
-try:
-    from PySide2 import QtWidgets
-    from shiboken2 import wrapInstance
-except ImportError:
-    from PySide6 import QtWidgets
-    from shiboken6 import wrapInstance
+from PySide6 import QtWidgets
+from shiboken6 import wrapInstance
 
 
 def undo_decorator(func):
     """Maya undo decorator."""
 
+    @functools.wraps(func)
     def wrapper(*args, **kwargs):
         cmds.undoInfo(openChunk=True)
         try:

@@ -1,9 +1,5 @@
-try:
-    from PySide2.QtGui import QColor
-    from PySide2.QtWidgets import QGraphicsDropShadowEffect
-except ImportError:
-    from PySide6.QtGui import QColor
-    from PySide6.QtWidgets import QGraphicsDropShadowEffect
+from PySide6.QtGui import QColor
+from PySide6.QtWidgets import QGraphicsDropShadowEffect
 
 
 def css_button(qt_window, button, color=None, shadow=True):

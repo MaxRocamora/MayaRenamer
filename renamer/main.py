@@ -4,40 +4,35 @@
 # https://github.com/MaxRocamora/MayaRenamer
 # ----------------------------------------------------------------------------------------
 import os
+
 import maya.cmds as cmds
 
-PYSIDE_VERSION = 2
+from PySide6 import QtUiTools, QtWidgets
+from PySide6.QtCore import Qt
 
-try:
-    from PySide2 import QtWidgets
-    from PySide2.QtCore import Qt
-    from PySide2 import QtUiTools
-except ImportError:
-    PYSIDE_VERSION = 6
-    from PySide6 import QtWidgets
-    from PySide6.QtCore import Qt
-    from PySide6 import QtUiTools
+from renamer import naming
+from renamer.css import checkbox_css, css_button, groupbox_css, label_css
+from renamer.utils import get_maya_main_window, undo_decorator
+from renamer.version import __app__, __qt__
 
-from renamer.css import css_button, groupbox_css, checkbox_css, label_css
-from renamer.utils import undo_decorator, get_maya_main_window
-from renamer.version import __qt__, __app__
-
-ui_path = os.path.dirname(__file__)
-ui_file = os.path.join(ui_path, 'ui', 'main_ui.ui')
+UI_FILE = os.path.join(os.path.dirname(__file__), 'ui', 'main_ui.ui')
 
 DEFAULT_PADDING = 1
 DEFAULT_PADDING_ZEROS = 4
 DEFAULT_BASENUMBER = 1
-UNDERSCORE = '_'
 
 
 class Renamer(QtWidgets.QMainWindow):
-    def __init__(self, parent=get_maya_main_window()):
+    def __init__(self, parent=None):
         """Main Renamer Class."""
+        parent = parent or get_maya_main_window()
         super().__init__(parent)
+        self.base_number = DEFAULT_BASENUMBER
+        self.padding_step = DEFAULT_PADDING
+        self.padding_zeros = DEFAULT_PADDING_ZEROS
         self.setAttribute(Qt.WA_DeleteOnClose, True)
         self.setObjectName(__qt__)
-        self.ui = QtUiTools.QUiLoader().load(ui_file, parentWidget=None)
+        self.ui = QtUiTools.QUiLoader().load(UI_FILE, parentWidget=None)
         self.setCentralWidget(self.ui)
         self.setWindowTitle(__app__)
         self.setWindowFlags(Qt.Tool)
@@ -62,140 +57,108 @@ class Renamer(QtWidgets.QMainWindow):
     def reset_ui(self):
         """Reset Variables and UI widgets."""
         self.ui.rad_selection.setChecked(True)
-        self.input_basename = ''
-        self.padding__basenumber = 1
         self.ui.line_basenumber.setText(str(DEFAULT_BASENUMBER))
-        self.padding_step = 1
         self.ui.line_padding_step.setText(str(DEFAULT_PADDING))
-        self.padding_zeros = 4
         self.ui.line_padding_zeros.setText(str(DEFAULT_PADDING_ZEROS))
 
     # ------------------------------------------------------------------------------------
     # CALLBACK METHODS
     # ------------------------------------------------------------------------------------
 
+    def _read_int(self, line_edit, default: int, minimum: int = None) -> int:
+        """Read an int from a line edit, resetting the field if the text is invalid."""
+        value = naming.parse_int(line_edit.text(), default, minimum)
+        if str(value) != line_edit.text().strip():
+            line_edit.setText(str(value))
+        return value
+
     @undo_decorator
     def rename_pressed(self):
         """Rename button callback."""
-        # Padding UI
-        if not self.is_number(self.ui.line_basenumber.text()):
-            self.ui.line_basenumber.setText(str(DEFAULT_BASENUMBER))
-        self.padding__basenumber = int(self.ui.line_basenumber.text())
+        self.base_number = self._read_int(self.ui.line_basenumber, DEFAULT_BASENUMBER)
+        self.padding_step = self._read_int(self.ui.line_padding_step, DEFAULT_PADDING)
+        self.padding_zeros = self._read_int(
+            self.ui.line_padding_zeros, DEFAULT_PADDING_ZEROS, minimum=0
+        )
 
-        if not self.is_number(self.ui.line_padding_step.text()):
-            self.ui.line_padding_step.setText(str(DEFAULT_PADDING))
-        self.padding_step = int(self.ui.line_padding_step.text())
-
-        if not self.is_number(self.ui.line_padding_zeros.text()):
-            self.ui.line_padding_zeros.setText(str(DEFAULT_PADDING_ZEROS))
-        self.padding_zeros = int(self.ui.line_padding_zeros.text())
-
-        # take selection
-        ui_selection = cmds.ls(sl=True, uuid=True)
-        if len(ui_selection) < 1:
+        uuids = cmds.ls(sl=True, uuid=True)
+        if not uuids:
             self.alert('Nothing Selected!', 'Rename')
             return
 
-        for item in ui_selection:
-            obj = cmds.ls(item)
-            __name = str(obj[0])
+        use_basename = self.ui.chk_name.isChecked()
+        basename = self.ui.line_name.text()
+        if use_basename:
+            if not basename:
+                self.alert('Enter a basename or disable checkbox!', 'Ops!')
+                return
+            if naming.is_number(basename):
+                self.alert('Your basename must not contain numbers', 'Ops!')
+                return
 
-            # string removes
-            __name = self.remove_first_digits(__name)
-            __name = self.remove_last_digits(__name)
+        failed = []
+        for uuid in uuids:
+            nodes = cmds.ls(uuid, long=True)
+            if not nodes:
+                continue
+            node = nodes[0]
 
-            # set basename
-            input_basename = self.ui.line_name.text()
-            if self.ui.chk_name.isChecked():
-                if not input_basename:
-                    self.alert('Enter a basename or disable checkbox!', 'Ops!')
-                    return
+            new_name = basename if use_basename else naming.short_name(node)
+            if not use_basename:
+                new_name = self.remove_first_digits(new_name)
+                new_name = self.remove_last_digits(new_name)
+            new_name = self.add_prefix(new_name)
+            new_name = self.add_suffix(new_name)
 
-                if self.is_number(input_basename):
-                    self.alert('Your basename must not contain numbers', 'Ops!')
-                    return
-                __name = input_basename
-
-            # affixes
-            __name = self.add_prefix(__name)
-            __name = self.add_suffix(__name)
-
-            # add serializing and padding
             if self.ui.chk_use_padding.isChecked():
-                padholder = str(self.padding__basenumber)
-                padholder = padholder.zfill(self.padding_zeros)
-                __name = __name + UNDERSCORE + padholder
+                new_name = naming.add_padding(
+                    new_name, self.base_number, self.padding_zeros
+                )
 
-            # rename it!
-            if self.is_number(__name):
-                print('skipping this item, the result is a number: ', obj)
+            if naming.is_number(new_name):
+                print(f'Skipping {node}: the result is a number')
                 continue
 
-            cmds.rename(obj, __name)
+            try:
+                cmds.rename(node, new_name)
+            except RuntimeError as error:
+                failed.append(f'{naming.short_name(node)}: {error}')
+                continue
 
-            self.padding__basenumber += self.padding_step
+            self.base_number += self.padding_step
+
+        if failed:
+            self.alert('Could not rename:\n' + '\n'.join(failed), 'Rename')
 
     # ------------------------------------------------------------------------------------
     # RENAME METHODS
     # ------------------------------------------------------------------------------------
 
-    def remove_first_digits(self, name):
-        """Remove first digits if you are not setting a base name."""
+    def remove_first_digits(self, name: str) -> str:
+        """Remove first characters of the name."""
         if not self.ui.chk_removefirst.isChecked():
             return name
-
-        if self.ui.chk_name.isChecked():
-            return name
-
-        if not self.is_number(self.ui.line_removefirst.text()):
-            self.ui.line_removefirst.setText('0')
-
-        remove_amount = int(self.ui.line_removefirst.text())
-        if remove_amount and len(name) > remove_amount:
-            name = name[remove_amount:]
-        return name
+        amount = self._read_int(self.ui.line_removefirst, 0, minimum=0)
+        return naming.remove_first(name, amount)
 
     def remove_last_digits(self, name: str) -> str:
-        """Remove last digits if you are not setting a base name."""
+        """Remove last characters of the name."""
         if not self.ui.chk_removelast.isChecked():
             return name
-
-        if self.ui.chk_name.isChecked():
-            return name
-
-        if not self.is_number(self.ui.line_removelast.text()):
-            self.ui.line_removelast.setText('0')
-
-        remove_amount = int(self.ui.line_removelast.text())
-        if remove_amount and len(name) > remove_amount:
-            name = name[:-remove_amount]
-        return name
+        amount = self._read_int(self.ui.line_removelast, 0, minimum=0)
+        return naming.remove_last(name, amount)
 
     def add_prefix(self, name: str) -> str:
         """Add prefix to the name."""
         if not self.ui.chk_prefix.isChecked():
             return name
-
-        input_prefix = self.ui.line_prefix.text()
-        if not input_prefix:
-            return name
-
-        if self.is_number(input_prefix):
-            return name
-
-        return input_prefix + UNDERSCORE + name
+        return naming.add_prefix(name, self.ui.line_prefix.text())
 
     def add_suffix(self, name: str) -> str:
         """Add suffix to the name."""
-
         if not self.ui.chk_suffix.isChecked():
             return name
-
-        input_suffix = self.ui.line_suffix.text()
-        if not input_suffix:
-            return name
-
-        return name + UNDERSCORE + input_suffix
+        return naming.add_suffix(name, self.ui.line_suffix.text())
 
     # ------------------------------------------------------------------------------------
     # Replace Methods
@@ -204,70 +167,55 @@ class Renamer(QtWidgets.QMainWindow):
     @undo_decorator
     def replace(self):
         """Replace button callback."""
-        replace_text = str(self.ui.line_find.text())
-        with_text = str(self.ui.line_replace.text())
+        find_text = self.ui.line_find.text()
+        replace_text = self.ui.line_replace.text()
+        if not find_text:
+            self.alert('Enter the text to find!', 'Replace')
+            return
 
-        nodes = cmds.ls() if self.ui.rad_scene.isChecked() else cmds.ls(sl=True)
-        self._find_replace(nodes, replace_text, with_text)
+        if self.ui.rad_scene.isChecked():
+            nodes = cmds.ls(long=True)
+        else:
+            nodes = cmds.ls(sl=True, long=True)
+        failed = self._find_replace(nodes, find_text, replace_text)
+        if failed:
+            self.alert('Could not rename:\n' + '\n'.join(failed), 'Replace')
 
-    @undo_decorator
     def _find_replace(self, nodes: list, find_text: str, replace_text: str) -> list:
-        """Find and replaces text, get nodes are based on scene or maya selection."""
-        shapes = cmds.ls(nodes, s=True)
-        shape_set = set(shapes)
+        """Replace text in node names. Returns descriptions of nodes that failed.
 
-        new_nodes_names = []
-        failed_nodes = []
-        for node in nodes:
-            if find_text not in node:
-                continue
-            if node in shape_set:
-                continue
+        Nodes are tracked by UUID so renaming a parent does not invalidate its children.
+        """
+        uuids = [
+            uuid
+            for node, uuid in zip(nodes, cmds.ls(nodes, uuid=True))
+            if find_text in naming.short_name(node)
+        ]
 
+        failed = []
+        for uuid in uuids:
+            current = cmds.ls(uuid, long=True)
+            if not current:
+                continue
+            old_name = naming.short_name(current[0])
+            if find_text not in old_name:
+                continue
             try:
-                new_nodes_names.append((node, cmds.rename(node, '__tmp__')))
-            except RuntimeError:
-                failed_nodes.append(node)
-
-        for shape in shapes:
-            if find_text not in shape:
-                continue
-            if not cmds.objExists(shape):
-                try:
-                    new_name = cmds.rename(shape, shape.replace(find_text, '__tmp__'))
-                    new_nodes_names.append((shape, new_name))
-                except RuntimeError:
-                    failed_nodes.append(node)
-
-        new_names = []
-        for name, new_node in new_nodes_names:
-            new_name = name.replace(find_text, replace_text)
-            new_names.append(cmds.rename(new_node, new_name))
-
-        return new_names
+                cmds.rename(current[0], old_name.replace(find_text, replace_text))
+            except RuntimeError as error:
+                failed.append(f'{old_name}: {error}')
+        return failed
 
     # ------------------------------------------------------------------------------------
     # UTILITY METHODS
     # ------------------------------------------------------------------------------------
 
-    def is_number(self, string_to_check: str) -> bool:
-        """Check if a string is a number."""
-        try:
-            int(string_to_check)
-            return True
-        except ValueError:
-            return False
-
     def alert(self, message: str, title: str):
-        """Opens a messagebox UI.
-
-        message: string - message to display.
-        title: string - title of the message box.
-        """
-        msgBox = QtWidgets.QMessageBox(self)
-        msgBox.setWindowTitle(title)
-        msgBox.setText(message)
-        msgBox.exec_() if PYSIDE_VERSION == 2 else msgBox.exec()
+        """Opens a messagebox UI."""
+        msg_box = QtWidgets.QMessageBox(self)
+        msg_box.setWindowTitle(title)
+        msg_box.setText(message)
+        msg_box.exec()
 
 
 # ----------------------------------------------------------------------------------------
@@ -276,7 +224,8 @@ class Renamer(QtWidgets.QMainWindow):
 
 
 def load():
-    """Load Renamer UI."""
-    if cmds.window(__qt__, q=1, ex=1):
-        cmds.deleteUI(__qt__)
-    Renamer()
+    """Load Renamer UI, closing any previous instance."""
+    for widget in QtWidgets.QApplication.allWidgets():
+        if widget.objectName() == __qt__ and isinstance(widget, QtWidgets.QMainWindow):
+            widget.close()
+    return Renamer()
